@@ -1,0 +1,6 @@
+## Interface: 20000
+## Title: Ultimate Craft Queue
+## Notes: How to craft like a champion
+## Dependencies:
+UltimateCraftQueue.lua
+UltimateCraftQueue.xml
