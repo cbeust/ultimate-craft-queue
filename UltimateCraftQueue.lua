@@ -188,9 +188,14 @@ function KTQShowHelp()
   print("  /ucq queue 5 Glyphs")
 end
 
-function ucq_IsClassAllowed(cls)
---  print("Allowed: " .. cls .. " result:" .. (cls ~= "Paladin"))
-  return cls ~= "Paladin"
+function ucq_GetStackSize(cls, defaultStackSize)
+  stackSizes = { ["Death Knight"] = 8, ["Paladin"] = 0 }
+  result = stackSizes[cls]
+  if (result == nil) then
+    result = defaultStackSize
+  end
+
+  return result
 end  
   
 function KTQQueueItem(stackSize, group)
@@ -202,14 +207,11 @@ function KTQQueueItem(stackSize, group)
     if (itemLink ~= nil) then
       cls = ucq_GetClassOfGlyphByLink(itemLink);
       if (cls ~= nil) then
-        if ucq_IsClassAllowed(cls) then
-          local itemId = Skillet:GetItemIDFromLink(itemLink)
-          queue, added = ucq_Process(i, stackSize, group, itemLink, itemId)
-          totalQueue = totalQueue + queue;
-          totalAdded = totalAdded + added;
-	else
-	  print("Skipping " .. itemLink .. " (class not allowed:" .. cls .. ")")
-	end
+        realStackSize = ucq_GetStackSize(cls, stackSize)
+        local itemId = Skillet:GetItemIDFromLink(itemLink)
+        queue, added = ucq_Process(i, realStackSize, group, itemLink, itemId)
+        totalQueue = totalQueue + queue;
+        totalAdded = totalAdded + added;
       end
     end -- if
 
@@ -260,7 +262,7 @@ function ucq_Process(i, stackSize, group, itemLink, itemId)
       AddToQueue(skillId,i, toQueue)
       
       
-      DEFAULT_CHAT_FRAME:AddMessage("+"..toQueue.." "..itemLink)
+--      DEFAULT_CHAT_FRAME:AddMessage("+"..toQueue.." "..itemLink)
       totalQueue = totalQueue + toQueue
       totalAdded = totalAdded  + 1
     else
