@@ -520,17 +520,65 @@ function ucq_GetClassOfGlyphByLink(itemLink)
   return result;
 end
 
+--
+-- Create an edit box to change the stack size for a class
+--
+function ucq_CreateClassStackSize(cls)
+  local stackSizes = UltimateCraftQueueDB.stackSizes
+  local result = AceGUI:Create("EditBox")
+  result:SetLabel(cls)
+  result:SetWidth(100)
+  if stackSizes[cls] ~= nil then
+    result:SetText(stackSizes[cls])
+  else
+    result:SetText("")
+  end
+  result:SetCallback("OnEnterPressed",
+    function(widget, event, text)
+      if text ~= nil then
+        n = tonumber(text)
+	if (n ~= nil) then
+	  stackSizes[cls] = n
+          print("New stack size for " .. cls .. ":" .. stackSizes[cls])
+	end
+      else
+        stackSizes[cls] = nil
+      end
+    end
+  )
+
+  return result
+end
+
+--
+-- Receives a table of class names, create a Flow container
+-- to contain them all and create an EditBox for each of them
+--
+function ucq_CreateClassPanel(parent, classes)
+  container = AceGUI:Create("SimpleGroup")
+  container:SetLayout("Flow")
+  for k, v in ipairs(classes) do
+    print("Adding " .. v .. " to flow simple group")
+    container:AddChild(ucq_CreateClassStackSize(v))
+  end
+  print("adding simple group to parent")
+  parent:AddChild(container)
+end
+
 function ucq_ShowUi()
   local frame = AceGUI:Create("Frame")
   frame:SetTitle("Ultimate Craft Queue")
-  frame:SetStatusText("AceGUI-3.0 Example Container Frame")
+  frame:SetStatusText("Nothing to report")
   frame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
   frame:SetLayout("List")
 
+  --
+  -- Main stack size
+  --
   local stackSize  
   local stackSizeEditBox = AceGUI:Create("EditBox")
   stackSizeEditBox:SetLabel("Stack size:")
-  stackSizeEditBox:SetWidth(200)
+  stackSizeEditBox:SetWidth(100)
   ss = UltimateCraftQueueDB.stackSize
   if ss ~= nil then
     stackSizeEditBox:SetText(ss)
@@ -541,37 +589,39 @@ function ucq_ShowUi()
     end)
   frame:AddChild(stackSizeEditBox)
 
+  --
+  -- Skip singles
+  --
+  KTQskipSingles = true
   if UltimateCraftQueueDB.skipSingles ~= nil then
     KTQskipSingles = true
   else
-    KTQskipSingles = tfalse
+    KTQskipSingles = false
   end
 
+  --
+  -- Class stack size overrides
+  --
   local classes = {
-    "Death Knight", "Druid", "Hunter", "Mage", "Paladin", "Priest",
-    "Rogue", "Shaman", "Warlock", "Warrior"
+    { "Death Knight", "Druid", "Hunter" },
+    { "Mage", "Paladin", "Priest"},
+    { "Rogue", "Shaman", "Warlock"},
+    { "Warrior" }
   }
 
-  local stackSizes = UltimateCraftQueueDB.stackSizes
+  local container = AceGUI:Create("InlineGroup")
+  container:SetTitle("Stack size class overrides")
+  container:SetFullWidth(true)
+  container:SetLayout("List")
+  frame:AddChild(container)
+
   for k, v in ipairs(classes) do
-    local b = AceGUI:Create("EditBox")
-    b:SetLabel(v)
-    b:SetWidth(150)
-    if stackSizes[v] ~= nil then
-      b:SetText(stackSizes[v])
-    end
-    b:SetCallback("OnEnterPressed",
-      function(widget, event, text)
-        if text ~= nil then
-          stackSizes[v] = tonumber(text)
-          print("New stack size for " .. v .. ":" .. stackSizes[v])
-	else
-	  stackSizes[v] = nil
-	end
-      end)
-    frame:AddChild(b)
+    ucq_CreateClassPanel(container, v)
   end
 
+  --
+  -- "Create queue" button
+  --
   local button = AceGUI:Create("Button")
   button:SetText("Create Queue")
   button:SetCallback("OnClick",
@@ -580,11 +630,11 @@ function ucq_ShowUi()
       print("stack size:" .. stackSize)
       KTQQueueItem(stackSize, "Glyphs");
     end)
-  button:SetWidth(200)
   frame:AddChild(button)
 end
 
 
 
 -- /run print(GetClassOfGlyph(41104));
--- /run print(GetClassOfGlyph(43538));
+-- /run print(GetClassOfGlyph(43538))
+;
