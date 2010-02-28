@@ -1,7 +1,11 @@
 <Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://www.blizzard.com/wow/ui/">
   <!-- Here the Scripts that have to be Executed -->
   <Frame name="KevToolQueue_GeneralScripts" hidden="true">
-  <Scripts>     <OnLoad> KevToolQueue_OnLoad() </OnLoad></Scripts>
+<!--
+  <Scripts>
+     <OnLoad> KevToolQueue_OnLoad() </OnLoad>
+  </Scripts>
+-->
   </Frame>  
   
   <Frame name="KevToolQueue" hidden="true" virtual="true" parent="UIParent">
@@ -9,6 +13,14 @@
     <Size> 
       <AbsDimension x="200" y="200"/> 
     </Size> 
+
+    <Scripts>
+<!--
+      <Onload>
+        self:ucq_ShowUi();
+      </Onload>
+-->
+    </Scripts>
 
     <Anchors> 
       <Anchor point="CENTER" /> 
@@ -31,5 +43,6 @@
       </Onload>
     </Scripts>
   </GameTooltip>
+
 
 </Ui> 

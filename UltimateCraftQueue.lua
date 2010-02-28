@@ -1,3 +1,30 @@
+UltimateCraftQueue = LibStub("AceAddon-3.0"):NewAddon("UltimateCraftQueue", "AceConsole-3.0")
+
+AceGUI = LibStub:GetLibrary("AceGUI-3.0")
+
+function UltimateCraftQueue:OnInitialize()
+  self:RegisterChatCommand("ucq", "ChatCommand")
+  UltimateCraftQueue.message = "welcome"
+    -- Called when the addon is loaded
+end
+
+function UltimateCraftQueue:OnEnable()
+end
+
+function UltimateCraftQueue:OnDisable()
+    -- Called when the addon is disabled
+end
+
+function UltimateCraftQueue:ChatCommand(input)
+  print("input:" .. input)
+  if not input or input:trim() == "" then
+    ucq_ShowUi()
+  else
+    LibStub("AceConfigCmd-3.0").HandleCommand(UltimateCraftQueue, "ucq", "UltimateCraftQueue", input)
+  end
+end
+
+
 -- Kevin Marquette
 -- www.ithinkincode.com/warcraft
 
@@ -68,6 +95,8 @@ function KTQSlashCommandHandler(msg)
       else
         KTQShowHelp()
       end
+    elseif arg0 == "UI" then
+      ucq_ShowUi()
     elseif arg0 == "ENABLE" then
       if arg1 == "BONUSQUEUE" then
         KTQuseBonusQueue = true    
@@ -104,7 +133,12 @@ function KTQSlashCommandHandler(msg)
         print("KevTool Queue: Fallback is Enabled");
       else    
         print("KevTool Queue: Fallback is Disabled");
-      end  
+      end
+      if OverridesDB ~= nil then
+        print("UCQ Overrides: " .. OverridesDB["PALADIN"] .. " " .. OverridesDB["DEATH KNIGHT"])
+      else
+        print("No overrides")
+      end
     elseif arg0 == "SET" then
       if arg2 ~= nil then
         local value = tonumber(arg2)
@@ -118,8 +152,9 @@ function KTQSlashCommandHandler(msg)
               KTQThreshold = value
               print("KevTool Queue: Threshold "..KTQFormatCopperToText(KTQThreshold,false));
             end
-            
-          end    
+	  elseif arg1 == "OVERRIDES" then
+	    ucq_HandleOverrides(msg);
+          end
         end
       
       else
@@ -133,6 +168,29 @@ function KTQSlashCommandHandler(msg)
   else
     KTQShowHelp()
   end
+end
+
+function ucq_HandleOverrides(msg)
+ print("Overrides:@" .. msg .. "@")
+  local tbl = {}
+  i = 0
+  for v in string.gmatch(msg, "[^ ]+") do
+    if i >= 2 then
+      print("inserting " .. v)
+      tinsert(tbl, v)
+    end
+    i = i + 1
+  end
+  if OverridesDB == nil then
+    OverridesDB = {}
+  end
+  for i = 1, #tbl, 2 do
+    cls = tbl[i]
+    value = tbl[i + 1]
+    print("OVERRIDE " .. cls .. ":" .. value)
+    OverridesDB[cls] = value
+  end
+
 end
 
 function KTQQueue(msg)
@@ -188,8 +246,18 @@ function KTQShowHelp()
   print("  /ucq queue 5 Glyphs")
 end
 
+if UltimateCraftQueueDB == nil then
+  UltimateCraftQueueDB = {
+    ["stackSizes"] = {
+      ["Death Knight"] = 6,
+      ["Paladin"] = 0
+    },
+    ["stackSize"] = 4,
+  }
+end
+
 function ucq_GetStackSize(cls, defaultStackSize)
-  stackSizes = { ["Death Knight"] = 8, ["Paladin"] = 0 }
+  stackSizes = { ["Death Knight"] = 6, ["Paladin"] = 0 }
   result = stackSizes[cls]
   if (result == nil) then
     result = defaultStackSize
@@ -451,6 +519,72 @@ function ucq_GetClassOfGlyphByLink(itemLink)
 --  if (result ~= nil) then print("Returning class:@" .. result .. "@") end
   return result;
 end
+
+function ucq_ShowUi()
+  local frame = AceGUI:Create("Frame")
+  frame:SetTitle("Ultimate Craft Queue")
+  frame:SetStatusText("AceGUI-3.0 Example Container Frame")
+  frame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+  frame:SetLayout("List")
+
+  local stackSize  
+  local stackSizeEditBox = AceGUI:Create("EditBox")
+  stackSizeEditBox:SetLabel("Stack size:")
+  stackSizeEditBox:SetWidth(200)
+  ss = UltimateCraftQueueDB.stackSize
+  if ss ~= nil then
+    stackSizeEditBox:SetText(ss)
+  end
+  stackSizeEditBox:SetCallback("OnEnterPressed",
+    function(widget, event, text)
+      UltimateCraftQueueDB.stackSize = tonumber(text)
+    end)
+  frame:AddChild(stackSizeEditBox)
+
+  if UltimateCraftQueueDB.skipSingles ~= nil then
+    KTQskipSingles = true
+  else
+    KTQskipSingles = tfalse
+  end
+
+  local classes = {
+    "Death Knight", "Druid", "Hunter", "Mage", "Paladin", "Priest",
+    "Rogue", "Shaman", "Warlock", "Warrior"
+  }
+
+  local stackSizes = UltimateCraftQueueDB.stackSizes
+  for k, v in ipairs(classes) do
+    local b = AceGUI:Create("EditBox")
+    b:SetLabel(v)
+    b:SetWidth(150)
+    if stackSizes[v] ~= nil then
+      b:SetText(stackSizes[v])
+    end
+    b:SetCallback("OnEnterPressed",
+      function(widget, event, text)
+        if text ~= nil then
+          stackSizes[v] = tonumber(text)
+          print("New stack size for " .. v .. ":" .. stackSizes[v])
+	else
+	  stackSizes[v] = nil
+	end
+      end)
+    frame:AddChild(b)
+  end
+
+  local button = AceGUI:Create("Button")
+  button:SetText("Create Queue")
+  button:SetCallback("OnClick",
+    function()
+      stackSize = UltimateCraftQueueDB.stackSize
+      print("stack size:" .. stackSize)
+      KTQQueueItem(stackSize, "Glyphs");
+    end)
+  button:SetWidth(200)
+  frame:AddChild(button)
+end
+
+
 
 -- /run print(GetClassOfGlyph(41104));
 -- /run print(GetClassOfGlyph(43538));
