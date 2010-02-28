@@ -565,7 +565,39 @@ function ucq_CreateClassPanel(parent, classes)
   parent:AddChild(container)
 end
 
+--
+-- Initialize the db (only useful for first runs)
+--
+function ucq_InitializeDB()
+  if UltimateCraftQueue == nil then
+    UltimateCraftQueue = {
+      ["stackSize"] = 4,
+      ["stackSizes"] = {},
+      ["skipSingles"] = true,
+      ["bonusQueue"] = false,
+      ["threshold"] = 0
+    }
+  end
+end
+
+--
+-- Create a check box tied to a DB key
+--
+function ucq_CreateCheckBox(label, key)
+  local result = AceGUI:Create("CheckBox")
+  result:SetLabel(label)
+  result:SetValue(UltimateCraftQueueDB[key])
+  result:SetCallback("OnValueChanged",
+    function(widget, event, value)
+      print(label .. " is now " .. tostring(value))
+      UltimateCraftQueueDB[key] = value
+    end)
+
+  return result
+end
+
 function ucq_ShowUi()
+  ucq_InitializeDB()
   local frame = AceGUI:Create("Frame")
   frame:SetTitle("Ultimate Craft Queue")
   frame:SetStatusText("Nothing to report")
@@ -575,6 +607,11 @@ function ucq_ShowUi()
   --
   -- Main stack size
   --
+  local line1 = AceGUI:Create("SimpleGroup")
+  line1:SetLayout("Flow")
+  line1:SetFullWidth(true)
+  frame:AddChild(line1)
+
   local stackSize  
   local stackSizeEditBox = AceGUI:Create("EditBox")
   stackSizeEditBox:SetLabel("Stack size:")
@@ -587,17 +624,35 @@ function ucq_ShowUi()
     function(widget, event, text)
       UltimateCraftQueueDB.stackSize = tonumber(text)
     end)
-  frame:AddChild(stackSizeEditBox)
+  line1:AddChild(stackSizeEditBox)
+
+  --
+  -- Threshold
+  --
+  local thresholdEditBox = AceGUI:Create("EditBox")
+  thresholdEditBox:SetLabel("Threshold (#g#s#c)")
+  thresholdEditBox:SetText(
+      KTQFormatCopperToText(UltimateCraftQueueDB.thresholdEditBox))
+  thresholdEditBox:SetCallback("OnEnterPressed",
+    function(widget, event, text)
+      copper = KTQConvertTextToCopper(text)
+      if (copper ~= nil) then
+        UltimateCraftQueueDB.thresholdEditBox = copper
+      end
+    end)
+  line1:AddChild(thresholdEditBox)
 
   --
   -- Skip singles
   --
+  line1:AddChild(ucq_CreateCheckBox("Skip singles", "skipSingles"))
   KTQskipSingles = true
-  if UltimateCraftQueueDB.skipSingles ~= nil then
-    KTQskipSingles = true
-  else
-    KTQskipSingles = false
-  end
+
+  --
+  -- Bonus queue
+  --
+  line1:AddChild(ucq_CreateCheckBox("Bonus queue", "bonusQueue"))
+  KTQuseBonusQueue = false
 
   --
   -- Class stack size overrides
@@ -636,5 +691,4 @@ end
 
 
 -- /run print(GetClassOfGlyph(41104));
--- /run print(GetClassOfGlyph(43538))
-;
+-- /run print(GetClassOfGlyph(43538));
