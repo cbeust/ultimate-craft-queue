@@ -53,9 +53,9 @@ function KevToolQueue_OnLoad()
     KTQBonusQueue = 2
   end
   
-  if not KTQskipSingles then
-    KTQskipSingles = false
-  end
+--  if not KTQskipSingles then
+--    KTQskipSingles = false
+--  end
   if not KTQuseThreshold then
     KTQuseThreshold = false
   end
@@ -119,7 +119,7 @@ function KTQSlashCommandHandler(msg)
       else    
         print("KevTool Queue: BonusQueue is Disabled");
       end  
-      if KTQskipSingles then
+      if UltimateCraftQueue.skipSingles then
         print("KevTool Queue: Skipping Singles is Enabled");
       else    
         print("KevTool Queue: Skipping Singles is Disabled");
@@ -151,6 +151,8 @@ function KTQSlashCommandHandler(msg)
             if value ~= nil then
               KTQThreshold = value
               print("KevTool Queue: Threshold "..KTQFormatCopperToText(KTQThreshold,false));
+	    else
+	      print("Couldn't convert " .. arg2)
             end
 	  elseif arg1 == "OVERRIDES" then
 	    ucq_HandleOverrides(msg);
@@ -193,6 +195,7 @@ function ucq_HandleOverrides(msg)
 
 end
 
+--[[
 function KTQQueue(msg)
   local queueString0,queueString1,queueString2,queueString3,queueString4,queueString5,queueString6  = strsplit(" ",msg)
   if queueString0 == "QUEUE" then
@@ -245,6 +248,9 @@ function KTQShowHelp()
   print("  /ucq set threshold 5g83s12c")
   print("  /ucq queue 5 Glyphs")
 end
+
+--]]
+
 
 if UltimateCraftQueueDB == nil then
   UltimateCraftQueueDB = {
@@ -314,18 +320,20 @@ function ucq_Process(i, stackSize, group, itemLink, itemId)
     if KTQuseBonusQueue == true and toQueue == stackSize then
       toQueue = toQueue + KTQBonusQueue
     end
-    
-    if KTQuseThreshold == true then
-      local minBuyout = KTQGetLowestPrice(itemLink)      
+
+    --
+    -- Compare to the threshold
+    local minBuyout = KTQGetLowestPrice(itemLink)
       
-      if minBuyout < KTQThreshold then
+    if (minBuyout ~= nil and minBuyout < ucq_GetThreshold()) then
         
-        DEFAULT_CHAT_FRAME:AddMessage("-"..toQueue.." "..itemLink.." under threshold "..KTQFormatCopperToText(minBuyout,true))
-        toQueue = 0
-      end
+      DEFAULT_CHAT_FRAME:AddMessage("-"..toQueue.." "..itemLink.." under threshold "..KTQFormatCopperToText(minBuyout,true))
+      toQueue = 0
+    elseif (minBuyout == nil) then
+      print("Couldn't find a buyout for " .. itemLink)
     end
     
-    if (KTQskipSingles == false or toQueue > 1) and toQueue ~= 0 then
+    if (not ucq_GetSkipSingles() or toQueue > 1) and toQueue ~= 0 then
     -- This is where curse client crashes
       AddToQueue(skillId,i, toQueue)
       
@@ -350,16 +358,16 @@ function ucq_Process(i, stackSize, group, itemLink, itemId)
 --  DEFAULT_CHAT_FRAME:AddMessage("Items Skipped: "..totalSkipped)
 end
 
-function AddToQueue(skillId,skillIndex, toQueue)
-      if Skillet == nil then
-        print("Skillet not loaded")
-      end
-      if Skillet.QueueCommandIterate ~= nil then
-        local queueCommand = Skillet:QueueCommandIterate(tonumber(skillId), toQueue)
-        Skillet:AddToQueue(queueCommand)
-      else
-        Skillet.stitch:AddToQueue(skillIndex, toQueue)
-      end
+function AddToQueue(skillId, skillIndex, toQueue)
+  if Skillet == nil then
+    print("Skillet not loaded")
+  end
+  if Skillet.QueueCommandIterate ~= nil then
+    local queueCommand = Skillet:QueueCommandIterate(tonumber(skillId), toQueue)
+    Skillet:AddToQueue(queueCommand)
+  else
+    Skillet.stitch:AddToQueue(skillIndex, toQueue)
+  end
 end
 
 function KTQIsMatch(skillName, group)
@@ -494,6 +502,22 @@ function KTQConvertTextToCopper(text)
   return copper
 end
 
+function ucq_GetSkipSingles()
+  return UltimateCraftQueueDB.skipSingles
+end
+
+function ucq_GetThreshold()
+  return UltimateCraftQueueDB.threshold
+end
+
+function ucq_GetStackSize()
+  return UltimateCraftQueueDB.stackSize
+end
+
+function ucq_GetBonusQueue()
+  return UltimateCraftQueueDB.bonusQueue
+end
+
 function ucq_GetClassOfGlyphByName(itemName)
   ScanningTooltip:ClearLines();
 
@@ -557,6 +581,7 @@ end
 function ucq_CreateClassPanel(parent, classes)
   container = AceGUI:Create("SimpleGroup")
   container:SetLayout("Flow")
+  container:SetFullWidth(true)
   for k, v in ipairs(classes) do
     print("Adding " .. v .. " to flow simple group")
     container:AddChild(ucq_CreateClassStackSize(v))
@@ -596,9 +621,15 @@ function ucq_CreateCheckBox(label, key)
   return result
 end
 
+--
+-- main
+--
 function ucq_ShowUi()
   ucq_InitializeDB()
   local frame = AceGUI:Create("Frame")
+  frame:SetWidth(500)
+  frame:SetHeight(500)
+  frame:SetPoint("TOPLEFT", 20, -100)
   frame:SetTitle("Ultimate Craft Queue")
   frame:SetStatusText("Nothing to report")
   frame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
@@ -609,13 +640,11 @@ function ucq_ShowUi()
   --
   local line1 = AceGUI:Create("SimpleGroup")
   line1:SetLayout("Flow")
-  line1:SetFullWidth(true)
   frame:AddChild(line1)
 
   local stackSize  
   local stackSizeEditBox = AceGUI:Create("EditBox")
-  stackSizeEditBox:SetLabel("Stack size:")
-  stackSizeEditBox:SetWidth(100)
+  stackSizeEditBox:SetLabel("Stack size")
   ss = UltimateCraftQueueDB.stackSize
   if ss ~= nil then
     stackSizeEditBox:SetText(ss)
@@ -630,16 +659,21 @@ function ucq_ShowUi()
   -- Threshold
   --
   local thresholdEditBox = AceGUI:Create("EditBox")
-  thresholdEditBox:SetLabel("Threshold (#g#s#c)")
+  thresholdEditBox:SetLabel("Threshold (e.g 12g34s56c)")
   thresholdEditBox:SetText(
-      KTQFormatCopperToText(UltimateCraftQueueDB.thresholdEditBox))
+      KTQFormatCopperToText(UltimateCraftQueueDB.threshold))
   thresholdEditBox:SetCallback("OnEnterPressed",
     function(widget, event, text)
+      print("Trying to convert '" .. text .. "'")
       copper = KTQConvertTextToCopper(text)
       if (copper ~= nil) then
-        UltimateCraftQueueDB.thresholdEditBox = copper
+        print("New copper value: " .. copper)
+        UltimateCraftQueueDB.threshold = copper
+      else
+        print("Couldn't convert '" .. text .. "'")
       end
     end)
+  thresholdEditBox:SetFullWidth(true)
   line1:AddChild(thresholdEditBox)
 
   --
@@ -651,17 +685,18 @@ function ucq_ShowUi()
   --
   -- Bonus queue
   --
-  line1:AddChild(ucq_CreateCheckBox("Bonus queue", "bonusQueue"))
+  bonusQueueCb = ucq_CreateCheckBox("Bonus queue", "bonusQueue")
+  bonusQueueCb:SetFullWidth(true)
+  line1:AddChild(bonusQueueCb)
   KTQuseBonusQueue = false
 
   --
   -- Class stack size overrides
   --
   local classes = {
-    { "Death Knight", "Druid", "Hunter" },
-    { "Mage", "Paladin", "Priest"},
-    { "Rogue", "Shaman", "Warlock"},
-    { "Warrior" }
+    { "Death Knight", "Druid", "Hunter", "Mage" },
+    { "Paladin", "Priest", "Rogue", "Shaman" },
+    { "Warlock", "Warrior" }
   }
 
   local container = AceGUI:Create("InlineGroup")
