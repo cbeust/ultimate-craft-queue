@@ -30,10 +30,6 @@ end
 
 local frame = CreateFrame("FRAME", "KevToolQueueFrame");
 
-function log(s)
-  print(s)
-end
-
 function KevToolQueue_OnLoad()
   --math.randomseed();
 
@@ -75,110 +71,13 @@ function KevToolQueue_OnLoad()
   log("UltimateCraftQueue loaded: type /ucq for options");
 end
 
-function KTQSlashCommandHandler(msg)
-
-  if msg ~= nil then
-    local arg0,arg1,arg2  = strsplit(" ",msg)
-    if arg0 == "DISABLE" then
-      if arg1 == "BONUSQUEUE" then        
-          KTQuseBonusQueue = false
-          print("KevTool Queue: BonusQueue Disabled");  
-      elseif arg1 == "SKIPSINGLES" then        
-          KTQskipSingles = false
-          print("KevTool Queue: SkipSingles Disabled");        
-      elseif arg1 == "THRESHOLD" then        
-          KTQuseThreshold = false
-          print("KevTool Queue: Threshold Disabled");          
-      elseif arg1 == "FALLBACK" then        
-          KTQuseFallback = false
-          print("KevTool Queue: Fallback Disabled");      
-      else
-        KTQShowHelp()
-      end
-    elseif arg0 == "UI" then
-      ucq_ShowUi()
-    elseif arg0 == "ENABLE" then
-      if arg1 == "BONUSQUEUE" then
-        KTQuseBonusQueue = true    
-        print("KevTool Queue: BonusQueue Enabled");        
-      elseif arg1 == "SKIPSINGLES" then
-        KTQskipSingles = true    
-        print("KevTool Queue: SkipSingles Enabled");
-      elseif arg1 == "THRESHOLD" then    
-        KTQuseThreshold = true    
-        print("KevTool Queue: Threshold Enabled");      
-      elseif arg1 == "FALLBACK" then        
-        KTQuseFallback = true    
-        print("KevTool Queue: Fallback Enabled");      
-      else
-        KTQShowHelp()
-      end  
-    elseif arg0 == "SHOW" then
-      if KTQuseBonusQueue then
-        print("KevTool Queue: BonusQueue "..KTQBonusQueue);
-      else    
-        print("KevTool Queue: BonusQueue is Disabled");
-      end  
-      if UltimateCraftQueue.skipSingles then
-        print("KevTool Queue: Skipping Singles is Enabled");
-      else    
-        print("KevTool Queue: Skipping Singles is Disabled");
-      end  
-      if KTQuseThreshold then
-        print("KevTool Queue: Threshold "..KTQFormatCopperToText(KTQThreshold, false));
-      else    
-        print("KevTool Queue: Threshold is Disabled");
-      end  
-      if KTQuseFallback then
-        print("KevTool Queue: Fallback is Enabled");
-      else    
-        print("KevTool Queue: Fallback is Disabled");
-      end
-      if OverridesDB ~= nil then
-        print("UCQ Overrides: " .. OverridesDB["PALADIN"] .. " " .. OverridesDB["DEATH KNIGHT"])
-      else
-        print("No overrides")
-      end
-    elseif arg0 == "SET" then
-      if arg2 ~= nil then
-        local value = tonumber(arg2)
-        if arg1 ~= nil then
-          if arg1 == "BONUSQUEUE" then
-            KTQBonusQueue = value
-            print("KevTool Queue: BonusQueue "..KTQBonusQueue);
-          elseif arg1 == "THRESHOLD" then
-            value = KTQConvertTextToCopper(arg2)
-            if value ~= nil then
-              KTQThreshold = value
-              print("KevTool Queue: Threshold "..KTQFormatCopperToText(KTQThreshold,false));
-	    else
-	      print("Couldn't convert " .. arg2)
-            end
-	  elseif arg1 == "OVERRIDES" then
-	    ucq_HandleOverrides(msg);
-          end
-        end
-      
-      else
-        KTQShowHelp()
-      end
-    elseif arg0 == "QUEUE" then
-      KTQQueue(msg)      
-    else
-    KTQShowHelp()
-    end
-  else
-    KTQShowHelp()
-  end
-end
-
 function ucq_HandleOverrides(msg)
- print("Overrides:@" .. msg .. "@")
+ log("Overrides:@" .. msg .. "@")
   local tbl = {}
   i = 0
   for v in string.gmatch(msg, "[^ ]+") do
     if i >= 2 then
-      print("inserting " .. v)
+      log("inserting " .. v)
       tinsert(tbl, v)
     end
     i = i + 1
@@ -189,68 +88,11 @@ function ucq_HandleOverrides(msg)
   for i = 1, #tbl, 2 do
     cls = tbl[i]
     value = tbl[i + 1]
-    print("OVERRIDE " .. cls .. ":" .. value)
+    log("OVERRIDE " .. cls .. ":" .. value)
     OverridesDB[cls] = value
   end
 
 end
-
---[[
-function KTQQueue(msg)
-  local queueString0,queueString1,queueString2,queueString3,queueString4,queueString5,queueString6  = strsplit(" ",msg)
-  if queueString0 == "QUEUE" then
-    if queueString1 ~= nil then
-      stackSize = tonumber(queueString1)
-      if queueString2 ~= nil then
-        if queueString2 == "GLYPHS" then
-          KTQQueueItem(stackSize, "Glyphs")
-        elseif queueString2 == "EPICGEMS" then
-          KTQQueueItem(stackSize, "EpicGems")
-        elseif queueString2 == "RAREGEMS" then
-          KTQQueueItem(stackSize, "RareGems")
-        else
-          if queueString6 ~= nil then
-            KTQQueueItem(stackSize, strtrim(queueString2.." "..queueString3.." "..queueString4.." "..queueString5.." "..queueString6))
-          elseif queueString5 ~= nil then
-            KTQQueueItem(stackSize, strtrim(queueString2.." "..queueString3.." "..queueString4.." "..queueString5))
-          elseif queueString4 ~= nil then
-            KTQQueueItem(stackSize, strtrim(queueString2.." "..queueString3.." "..queueString4))
-          elseif queueString3 ~= nil then
-            KTQQueueItem(stackSize, strtrim(queueString2.." "..queueString3))
-          else
-            KTQQueueItem(stackSize, strtrim(queueString2))
-          end
-          
-        end          
-      end
-      
-    end
-  end
-end 
- 
-function KTQShowHelp()
-  print("UltimateCraftQueueHelp [/ucq|/ultimatecraftqueue]")
-  print("Features")
-  print("  Bonus Queue lets you add extras when you sell out")
-  print("  Skip Singles lets you not queue it if there is only one needed")
-  print("  Threshold checks Auctioneer for listed value and lets you skip low selling items")
-  print("  Fallback determins how to handle it when the AH is empty in regards to threshold")
-  print("Command List")
-  print("  QUEUE [number] [Keyword|Glyphs|EpicGems|RareGems]")
-  print("          number is the amount you want to queue up")
-  print("          keyword is search word that will queue matches")
-  print("  ENABLE [BonusQueue|SkipSingles|Threshold|Fallback]")
-  print("  DISABLE [BonusQueue|SkipSingles|Threshold|Fallback]")
-  print("  SHOW [BonusQueue|SkipSingles|Threshold|Fallback]")
-  print("  SET [BonusQueue|Threshold] [number]")
-  print("          number is the value you want to set")
-  print("Example")
-  print("  /ucq set threshold 5g83s12c")
-  print("  /ucq queue 5 Glyphs")
-end
-
---]]
-
 
 if UltimateCraftQueueDB == nil then
   UltimateCraftQueueDB = {
@@ -330,7 +172,7 @@ function ucq_Process(i, stackSize, group, itemLink, itemId)
       DEFAULT_CHAT_FRAME:AddMessage("-"..toQueue.." "..itemLink.." under threshold "..KTQFormatCopperToText(minBuyout,true))
       toQueue = 0
     elseif (minBuyout == nil) then
-      print("Couldn't find a buyout for " .. itemLink)
+      log("Couldn't find a buyout for " .. itemLink)
     end
     
     if (not ucq_GetSkipSingles() or toQueue > 1) and toQueue ~= 0 then
@@ -360,12 +202,14 @@ end
 
 function AddToQueue(skillId, skillIndex, toQueue)
   if Skillet == nil then
-    print("Skillet not loaded")
+    log("Skillet not loaded")
   end
   if Skillet.QueueCommandIterate ~= nil then
+    log("Adding to queue " .. skillId .. " skillIndex:" .. skillIndex .. " toQueue:" .. toQueue)
     local queueCommand = Skillet:QueueCommandIterate(tonumber(skillId), toQueue)
     Skillet:AddToQueue(queueCommand)
   else
+   log("Adding to queue " .. skillId .. " skillIndex:" .. skillIndex .. " toQueue:" .. toQueue)
     Skillet.stitch:AddToQueue(skillIndex, toQueue)
   end
 end
@@ -492,7 +336,7 @@ function KTQConvertTextToCopper(text)
   local copper = tonumber(string.match(text, "([0-9]+)c"))
   
   if( not gold and not silver and not copper ) then
-    print("Invalid money format: #g#s#c")
+    log("Invalid money format: #g#s#c")
     return nil
   end
   
@@ -536,11 +380,11 @@ function ucq_GetClassOfGlyphByLink(itemLink)
 
   cls = getglobal("ScanningTooltipTextLeft3"):GetText()
   if (cls ~= nil) then
---    print("Cls is not nil: " .. cls);
+--    log("Cls is not nil: " .. cls);
     result = strmatch(cls, "Classes: ([%w%s]+)");
   end
 
---  if (result ~= nil) then print("Returning class:@" .. result .. "@") end
+--  if (result ~= nil) then log("Returning class:@" .. result .. "@") end
   return result;
 end
 
@@ -563,7 +407,7 @@ function ucq_CreateClassStackSize(cls)
         n = tonumber(text)
 	if (n ~= nil) then
 	  stackSizes[cls] = n
-          print("New stack size for " .. cls .. ":" .. stackSizes[cls])
+          log("New stack size for " .. cls .. ":" .. stackSizes[cls])
 	end
       else
         stackSizes[cls] = nil
@@ -583,10 +427,8 @@ function ucq_CreateClassPanel(parent, classes)
   container:SetLayout("Flow")
   container:SetFullWidth(true)
   for k, v in ipairs(classes) do
-    print("Adding " .. v .. " to flow simple group")
     container:AddChild(ucq_CreateClassStackSize(v))
   end
-  print("adding simple group to parent")
   parent:AddChild(container)
 end
 
@@ -614,27 +456,24 @@ function ucq_CreateCheckBox(label, key)
   result:SetValue(UltimateCraftQueueDB[key])
   result:SetCallback("OnValueChanged",
     function(widget, event, value)
-      print(label .. " is now " .. tostring(value))
+      log(label .. " is now " .. tostring(value))
       UltimateCraftQueueDB[key] = value
     end)
 
   return result
 end
 
---
--- main
---
-function ucq_ShowUi()
-  ucq_InitializeDB()
-  local frame = AceGUI:Create("Frame")
-  frame:SetWidth(500)
-  frame:SetHeight(500)
-  frame:SetPoint("TOPLEFT", 20, -100)
-  frame:SetTitle("Ultimate Craft Queue")
-  frame:SetStatusText("Nothing to report")
-  frame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
-  frame:SetLayout("List")
+-- Callback function for OnGroupSelected
+function SelectGroup(container, event, group)
+  container:ReleaseChildren()
+  if group == "tab1" then
+    DrawGroup1(container)
+  elseif group == "tab2" then
+    DrawGroup2(container)
+  end
+end
 
+function DrawGroup1(frame)
   --
   -- Main stack size
   --
@@ -651,6 +490,7 @@ function ucq_ShowUi()
   end
   stackSizeEditBox:SetCallback("OnEnterPressed",
     function(widget, event, text)
+      log("stack size:" .. text)
       UltimateCraftQueueDB.stackSize = tonumber(text)
     end)
   line1:AddChild(stackSizeEditBox)
@@ -664,13 +504,13 @@ function ucq_ShowUi()
       KTQFormatCopperToText(UltimateCraftQueueDB.threshold))
   thresholdEditBox:SetCallback("OnEnterPressed",
     function(widget, event, text)
-      print("Trying to convert '" .. text .. "'")
+      log("Trying to convert '" .. text .. "'")
       copper = KTQConvertTextToCopper(text)
       if (copper ~= nil) then
-        print("New copper value: " .. copper)
+        log("New copper value: " .. copper)
         UltimateCraftQueueDB.threshold = copper
       else
-        print("Couldn't convert '" .. text .. "'")
+        log("Couldn't convert '" .. text .. "'")
       end
     end)
   thresholdEditBox:SetFullWidth(true)
@@ -717,13 +557,75 @@ function ucq_ShowUi()
   button:SetCallback("OnClick",
     function()
       stackSize = UltimateCraftQueueDB.stackSize
-      print("stack size:" .. stackSize)
       KTQQueueItem(stackSize, "Glyphs");
     end)
   frame:AddChild(button)
 end
 
+local LogEditBox = AceGUI:Create("MultiLineEditBox")
+local logLines = {}
+local scroll = nil
 
+function log(s)
+  print("Log:" .. s)
+  tinsert(logLines, s)
+end
+
+function DrawGroup2(frame)
+  log("Drawing group 2")
+
+  scroll = AceGUI:Create("ScrollFrame")
+--  frame:AddChild(scroll)
+
+  for k, v in ipairs(logLines) do
+    l1 = AceGUI:Create("Label")
+    l1:SetText(v)
+    frame:AddChild(l1)
+  end
+
+--[[
+  l1 = AceGUI:Create("Label")
+  l1:SetText("label1")
+  scroll:AddChild(l1)
+  l2 = AceGUI:Create("Label")
+  l2:SetText("label2")
+  scroll:AddChild(l2)
+
+  scroll:AddChild(LogEditBox)
+  LogEditBox:SetText("=== log starts here")
+--]]
+end
+
+--
+-- main
+--
+function ucq_ShowUi()
+  ucq_InitializeDB()
+  local frame = AceGUI:Create("Frame")
+  frame:SetWidth(550)
+  frame:SetHeight(600)
+  frame:SetPoint("TOPLEFT", 20, -100)
+  frame:SetTitle("Ultimate Craft Queue")
+  frame:SetStatusText("Nothing to report")
+  frame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
+  frame:SetLayout("Fill")
+
+  local tab =  AceGUI:Create("TabGroup")
+  tab:SetLayout("Flow")
+  tab:SetTabs({{text="Main", value="tab1"}, {text="Log", value="tab2"}})
+  tab:SetCallback("OnGroupSelected", SelectGroup)
+  tab:SelectTab("tab1")
+
+--[[
+  scroll:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -1)
+  scroll:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -24, 1)
+  frame.userdata.scroll = CreateFrame("ScrollFrame", "foo", frame, "FauxScrollFrameTemplate")
+  frame:AddChild(scroll)
+--]]
+
+
+  frame:AddChild(tab)
+end
 
 -- /run print(GetClassOfGlyph(41104));
 -- /run print(GetClassOfGlyph(43538));
