@@ -133,8 +133,8 @@ function KTQQueueItem(stackSize, group)
 
   end -- for
 
-  DEFAULT_CHAT_FRAME:AddMessage("Total Added: "..totalQueue)
-  DEFAULT_CHAT_FRAME:AddMessage("Items Added: "..totalAdded )
+  log("Total Added: "..totalQueue)
+  log("Items Added: "..totalAdded )
 
 end
 
@@ -169,25 +169,22 @@ function ucq_Process(i, stackSize, group, itemLink, itemId)
       
     if (minBuyout ~= nil and minBuyout < ucq_GetThreshold()) then
         
-      DEFAULT_CHAT_FRAME:AddMessage("-"..toQueue.." "..itemLink.." under threshold "..KTQFormatCopperToText(minBuyout,true))
+      ucq_LogRed("Skipping " .. itemLink
+          .." (under threshold "..KTQFormatCopperToText(minBuyout,true) .. ")")
       toQueue = 0
     elseif (minBuyout == nil) then
-      log("Couldn't find a buyout for " .. itemLink)
+      ucq_LogRed("Couldn't find a buyout for " .. itemLink)
     end
     
     if (not ucq_GetSkipSingles() or toQueue > 1) and toQueue ~= 0 then
     -- This is where curse client crashes
       AddToQueue(skillId,i, toQueue)
-      
-      
---      DEFAULT_CHAT_FRAME:AddMessage("+"..toQueue.." "..itemLink)
+      ucq_LogGreen("Queuing " .. toQueue .. " " .. itemLink)
       totalQueue = totalQueue + toQueue
       totalAdded = totalAdded  + 1
     else
+      ucq_LogRed("Skipping " .. itemLink .. "(skipSingles is on)")
       totalSkipped = totalSkipped  + 1
-    end
-    else
-        totalSkipped = totalSkipped  + 1
     end
   end
 
@@ -198,6 +195,7 @@ function ucq_Process(i, stackSize, group, itemLink, itemId)
 --  DEFAULT_CHAT_FRAME:AddMessage("Total Added: "..totalQueue)
 --  DEFAULT_CHAT_FRAME:AddMessage("Items Added: "..totalAdded )
 --  DEFAULT_CHAT_FRAME:AddMessage("Items Skipped: "..totalSkipped)
+end
 end
 
 function AddToQueue(skillId, skillIndex, toQueue)
@@ -272,8 +270,14 @@ end
 
 function KTQGetLowestPrice(itemLink)
   if itemLink then
-    if KTQuseAucAdvanced == true and AucAdvanced and AucAdvanced.Version then
+--    if KTQuseAucAdvanced == true and AucAdvanced and AucAdvanced.Version then
       local imgSeen, image, matchBid, matchBuy, lowBid, lowBuy, aveBuy, aSeen = AucAdvanced.Modules.Util.SimpleAuction.Private.GetItems(itemLink)
+
+      ucq_LogBlue(itemLink
+          .. " matchBid:" .. (matchBid or "")
+          .. " matchBuy:" .. (matchBuy or "")
+          .. " lowBid:" .. lowBid
+	  .. " lowBuy:" .. lowBuy)
       local KTQFallback = 0
       if KTQuseFallback == true then
           KTQFallback = 9999999  
@@ -288,7 +292,7 @@ function KTQGetLowestPrice(itemLink)
         return KTQFallback
       end
     end
-  end  
+--  end  
 end
 
 -- All Currency processing and formatting Stolen form QuickAuction
@@ -477,6 +481,7 @@ function DrawGroup1(frame)
   --
   -- Main stack size
   --
+  frame:SetLayout("Flow")
   local line1 = AceGUI:Create("SimpleGroup")
   line1:SetLayout("Flow")
   frame:AddChild(line1)
@@ -519,13 +524,14 @@ function DrawGroup1(frame)
   --
   -- Skip singles
   --
-  line1:AddChild(ucq_CreateCheckBox("Skip singles", "skipSingles"))
+  local skipSingles = ucq_CreateCheckBox("Skip singles", "skipSingles")
+  line1:AddChild(skipSingles)
   KTQskipSingles = true
 
   --
   -- Bonus queue
   --
-  bonusQueueCb = ucq_CreateCheckBox("Bonus queue", "bonusQueue")
+  local bonusQueueCb = ucq_CreateCheckBox("Bonus queue", "bonusQueue")
   bonusQueueCb:SetFullWidth(true)
   line1:AddChild(bonusQueueCb)
   KTQuseBonusQueue = false
@@ -557,43 +563,52 @@ function DrawGroup1(frame)
   button:SetCallback("OnClick",
     function()
       stackSize = UltimateCraftQueueDB.stackSize
+      ucq_ResetLog()
       KTQQueueItem(stackSize, "Glyphs");
     end)
   frame:AddChild(button)
 end
 
-local LogEditBox = AceGUI:Create("MultiLineEditBox")
-local logLines = {}
-local scroll = nil
+local ucq_LOG_LINES = {}
+
+function ucq_ResetLog()
+  ucq_LOG_LINES = {}
+end
 
 function log(s)
   print("Log:" .. s)
-  tinsert(logLines, s)
+  tinsert(ucq_LOG_LINES, s)
+end
+
+function ucq_LogBlue(s)
+  log("|cff0000ff" .. s)
+end
+
+function ucq_LogRed(s)
+  log("|cffff0000" .. s)
+end
+
+function ucq_LogGreen(s)
+  log("|cff00ff00" .. s)
 end
 
 function DrawGroup2(frame)
-  log("Drawing group 2")
+  frame:SetLayout("Fill")
+  local scroll = AceGUI:Create("ScrollFrame")
+  scroll:SetPoint("TOPLEFT", 20, -100)
+  scroll:SetLayout("List")
+  scroll:SetWidth(300)
+  scroll:SetHeight(300)
+  
+  frame:AddChild(scroll)
 
-  scroll = AceGUI:Create("ScrollFrame")
---  frame:AddChild(scroll)
-
-  for k, v in ipairs(logLines) do
-    l1 = AceGUI:Create("Label")
+  for k, v in ipairs(ucq_LOG_LINES) do
+    local l1 = AceGUI:Create("Label")
+    l1:SetFullWidth(true)
     l1:SetText(v)
-    frame:AddChild(l1)
+    scroll:AddChild(l1)
   end
 
---[[
-  l1 = AceGUI:Create("Label")
-  l1:SetText("label1")
-  scroll:AddChild(l1)
-  l2 = AceGUI:Create("Label")
-  l2:SetText("label2")
-  scroll:AddChild(l2)
-
-  scroll:AddChild(LogEditBox)
-  LogEditBox:SetText("=== log starts here")
---]]
 end
 
 --
@@ -601,6 +616,8 @@ end
 --
 function ucq_ShowUi()
   ucq_InitializeDB()
+  KTQuseQuickAuction = true
+
   local frame = AceGUI:Create("Frame")
   frame:SetWidth(550)
   frame:SetHeight(600)
@@ -616,15 +633,9 @@ function ucq_ShowUi()
   tab:SetCallback("OnGroupSelected", SelectGroup)
   tab:SelectTab("tab1")
 
---[[
-  scroll:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -1)
-  scroll:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -24, 1)
-  frame.userdata.scroll = CreateFrame("ScrollFrame", "foo", frame, "FauxScrollFrameTemplate")
-  frame:AddChild(scroll)
---]]
-
-
   frame:AddChild(tab)
+
+  log("Welcome to UltimateCraftQueue")
 end
 
 -- /run print(GetClassOfGlyph(41104));
