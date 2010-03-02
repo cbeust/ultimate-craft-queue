@@ -94,19 +94,24 @@ function ucq_HandleOverrides(msg)
 
 end
 
-if UltimateCraftQueueDB == nil then
-  UltimateCraftQueueDB = {
-    ["stackSizes"] = {
-      ["Death Knight"] = 6,
-      ["Paladin"] = 0
-    },
-    ["stackSize"] = 4,
-  }
+function ucq_GetSkipSingles()
+  return UltimateCraftQueueDB.skipSingles
 end
 
-function ucq_GetStackSize(cls, defaultStackSize)
-  stackSizes = { ["Death Knight"] = 6, ["Paladin"] = 0 }
-  result = stackSizes[cls]
+function ucq_GetThreshold()
+  return UltimateCraftQueueDB.threshold
+end
+
+function ucq_GetStackSize()
+  return UltimateCraftQueueDB.stackSize
+end
+
+function ucq_GetBonusQueue()
+  return UltimateCraftQueueDB.bonusQueue
+end
+
+function ucq_GetStackSizeForClass(cls, defaultStackSize)
+  result = UltimateCraftQueueDB.stackSizes[cls]
   if (result == nil) then
     result = defaultStackSize
   end
@@ -125,7 +130,7 @@ function KTQQueueItem(stackSize, group)
       cls = ucq_GetClass(itemId)
 --      cls = ucq_GetClassOfGlyphByLink(itemLink);
       if (cls ~= nil) then
-        realStackSize = ucq_GetStackSize(cls, stackSize)
+        realStackSize = ucq_GetStackSizeForClass(cls, stackSize)
         queue, added = ucq_Process(i, realStackSize, group, itemLink, itemId)
         ucq_LogQueue(itemId, itemLink, queue)
         totalQueue = totalQueue + queue;
@@ -141,7 +146,7 @@ function KTQQueueItem(stackSize, group)
   for k, v in pairs(ucq_GLYPHS_QUEUED_BY_CLASSES) do
     ucq_LogGreen(k .. ":" .. v)
   end
-  ucq_LogGreen("Total number of glyph added: "..totalAdded )
+  ucq_LogGreen("Total number of glyphs added: "..totalAdded )
   ucq_LogGreen("Total number of items added: "..totalQueue)
 
 end
@@ -164,43 +169,37 @@ function ucq_Process(i, stackSize, group, itemLink, itemId)
     local count = Altoholic:GetItemCount(itemId)
     if count < stackSize then
     
-    local found, _, skillString = string.find(enchantLink, "^|%x+|H(.+)|h%[.+%]")
-    local _, skillId = strsplit(":", skillString )
-    local toQueue = stackSize - count
-    if KTQuseBonusQueue == true and toQueue == stackSize then
-      toQueue = toQueue + KTQBonusQueue
-    end
+      local found, _, skillString = string.find(enchantLink, "^|%x+|H(.+)|h%[.+%]")
+      local _, skillId = strsplit(":", skillString )
+      local toQueue = stackSize - count
+      if KTQuseBonusQueue == true and toQueue == stackSize then
+        toQueue = toQueue + KTQBonusQueue
+      end
 
-    --
-    -- Compare to the threshold
-    local minBuyout = KTQGetLowestPrice(itemLink)
+      --
+      -- Compare to the threshold
+      local minBuyout = KTQGetLowestPrice(itemLink)
       
-    if (minBuyout ~= nil and minBuyout < ucq_GetThreshold()) then
+      if (minBuyout ~= nil and minBuyout < ucq_GetThreshold()) then
         
-      ucq_LogRed("Skipping " .. itemLink
-          .." (under threshold "..KTQFormatCopperToText(minBuyout,true) .. ")")
-      toQueue = 0
-    end
+        ucq_LogRed("Skipping " .. itemLink
+            .." (under threshold "..KTQFormatCopperToText(minBuyout,true) .. ")")
+        toQueue = 0
+      end
     
-    if (not ucq_GetSkipSingles() or toQueue > 1) and toQueue ~= 0 then
-    -- This is where curse client crashes
-      AddToQueue(skillId,i, toQueue)
-      totalQueue = totalQueue + toQueue
-      totalAdded = totalAdded  + 1
-    else
-      ucq_LogRed("Skipping " .. itemLink .. " (skipSingles is on)")
-      totalSkipped = totalSkipped  + 1
+      if (not ucq_GetSkipSingles() or toQueue > 1) and toQueue ~= 0 then
+      -- This is where curse client crashes
+        AddToQueue(skillId,i, toQueue)
+        totalQueue = totalQueue + toQueue
+        totalAdded = totalAdded  + 1
+      else
+        ucq_LogRed("Skipping " .. itemLink .. " (skipSingles is on)")
+        totalSkipped = totalSkipped  + 1
+      end
     end
+
+    return totalQueue, totalAdded;
   end
-
-  return totalQueue, totalAdded;
-
---  DEFAULT_CHAT_FRAME:AddMessage("Keyword: "..group)
---  DEFAULT_CHAT_FRAME:AddMessage("Stack Size: "..stackSize)
---  DEFAULT_CHAT_FRAME:AddMessage("Total Added: "..totalQueue)
---  DEFAULT_CHAT_FRAME:AddMessage("Items Added: "..totalAdded )
---  DEFAULT_CHAT_FRAME:AddMessage("Items Skipped: "..totalSkipped)
-end
 end
 
 ucq_GLYPHS_QUEUED_BY_CLASSES = {}
@@ -383,22 +382,6 @@ function KTQConvertTextToCopper(text)
   return copper
 end
 
-function ucq_GetSkipSingles()
-  return UltimateCraftQueueDB.skipSingles
-end
-
-function ucq_GetThreshold()
-  return UltimateCraftQueueDB.threshold
-end
-
-function ucq_GetStackSize()
-  return UltimateCraftQueueDB.stackSize
-end
-
-function ucq_GetBonusQueue()
-  return UltimateCraftQueueDB.bonusQueue
-end
-
 function ucq_GetClassOfGlyphByName(itemName)
   ScanningTooltip:ClearLines();
 
@@ -478,6 +461,7 @@ end
 -- Initialize the db (only useful for first runs)
 --
 function ucq_InitializeDB()
+--[
   if UltimateCraftQueue == nil then
     UltimateCraftQueue = {
       ["stackSize"] = 4,
@@ -487,6 +471,7 @@ function ucq_InitializeDB()
       ["threshold"] = 0
     }
   end
+--]
 end
 
 --
