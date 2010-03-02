@@ -402,9 +402,8 @@ end
 -- Initialize the db (only useful for first runs)
 --
 function ucq_InitializeDB()
---[
-  if UltimateCraftQueue == nil then
-    UltimateCraftQueue = {
+  if UltimateCraftQueueDB == nil then
+    UltimateCraftQueueDB = {
       ["stackSize"] = 4,
       ["stackSizes"] = {},
       ["skipSingles"] = true,
@@ -412,7 +411,6 @@ function ucq_InitializeDB()
       ["threshold"] = 0
     }
   end
---]
 end
 
 --
@@ -617,6 +615,7 @@ function ucq_ShowUi()
 
   log("Welcome to UltimateCraftQueue")
 end
+
 
 -- /run print(GetClassOfGlyph(41104));
 -- /run print(GetClassOfGlyph(43538));
