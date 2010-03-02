@@ -5,6 +5,7 @@
 ## SavedVariables: UltimateCraftQueueDB
 UltimateCraftQueue.lua
 UltimateCraftQueue.xml
+GlyphClasses.lua
 
 #@no-lib-strip@
 embeds.xml
