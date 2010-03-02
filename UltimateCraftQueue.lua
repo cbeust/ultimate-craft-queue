@@ -142,12 +142,15 @@ function KTQQueueItem(stackSize, group)
 
   end -- for
 
-  ucq_LogGreen("============= Summary =============")
-  for k, v in pairs(ucq_GLYPHS_QUEUED_BY_CLASSES) do
+  ucq_LogGreen("")
+  ucq_LogGreen("============= Queue summary =============")
+  ucq_LogGreen("")
+  for k, v in pairs(UCQ_GLYPHS_QUEUED_BY_CLASSES) do
     ucq_LogGreen(k .. ":" .. v)
   end
-  ucq_LogGreen("Total number of glyphs added: "..totalAdded )
-  ucq_LogGreen("Total number of items added: "..totalQueue)
+  ucq_LogGreen("")
+  ucq_LogGreen("Total number of glyphs queued: "..totalAdded )
+  ucq_LogGreen("Total number of items queued: "..totalQueue)
 
 end
 
@@ -182,7 +185,7 @@ function ucq_Process(i, stackSize, group, itemLink, itemId)
       
       if (minBuyout ~= nil and minBuyout < ucq_GetThreshold()) then
         
-        ucq_LogRed("Skipping " .. itemLink
+        ucq_LogYellow("Skipping " .. itemLink
             .." (under threshold "..KTQFormatCopperToText(minBuyout,true) .. ")")
         toQueue = 0
       end
@@ -193,7 +196,7 @@ function ucq_Process(i, stackSize, group, itemLink, itemId)
         totalQueue = totalQueue + toQueue
         totalAdded = totalAdded  + 1
       else
-        ucq_LogRed("Skipping " .. itemLink .. " (skipSingles is on)")
+        ucq_LogYellow("Skipping " .. itemLink .. " (skipSingles is on)")
         totalSkipped = totalSkipped  + 1
       end
     end
@@ -202,21 +205,31 @@ function ucq_Process(i, stackSize, group, itemLink, itemId)
   end
 end
 
-ucq_GLYPHS_QUEUED_BY_CLASSES = {}
+-- Map of <string class, int itemCount> to keep track of how many items
+-- we created per class
+UCQ_GLYPHS_QUEUED_BY_CLASSES = {}
 
 function ucq_ResetVariables()
-  ucq_GLYPHS_QUEUED_BY_CLASSES = {}
+  local classes = {
+    "Death Knight", "Druid", "Hunter", "Mage",
+    "Paladin", "Priest", "Rogue", "Shaman",
+    "Warlock", "Warrior"
+  }
+  for i, v in ipairs(classes) do
+    UCQ_GLYPHS_QUEUED_BY_CLASSES[v] = 0
+  end
+
 end
 
+--
+-- Log that an item has just been queued
+--
 function ucq_LogQueue(itemId, itemLink, itemCount)
-  local h = ucq_GLYPHS_QUEUED_BY_CLASSES
+  local h = UCQ_GLYPHS_QUEUED_BY_CLASSES
 --  local cls = ucq_GetClassOfGlyphByLink(itemLink)
   local cls = ucq_GetClass(itemId)
   if cls ~= nil and itemCount > 0 then
     count = h[cls]
-    if (count == nil) then
-      count = 0
-    end
     count = count + itemCount
     h[cls] = count
     ucq_LogGreen("Queuing " .. itemCount .. " " .. itemLink .. " (" .. cls .. ")")
@@ -293,7 +306,7 @@ function KTQIsMatch(skillName, group)
 
 end
 
-ucq_AUCTIONEER_DETECTED = nil
+UCQ_AUCTIONEER_DETECTED = nil
 
 function KTQGetLowestPrice(itemLink)
   if itemLink then
@@ -305,7 +318,7 @@ function KTQGetLowestPrice(itemLink)
           .. " matchBid:" .. (matchBid or "")
           .. " matchBuy:" .. (matchBuy or "")
           .. " lowBid:" .. lowBid
-	  .. " lowBuy:" .. lowBuy)
+          .. " lowBuy:" .. lowBuy)
       local KTQFallback = 0
       if KTQuseFallback == true then
           KTQFallback = 9999999  
@@ -319,9 +332,9 @@ function KTQGetLowestPrice(itemLink)
       else
         return KTQFallback
       end
-    else if not ucq_AUCTIONEER_DETECTED then
+    else if not UCQ_AUCTIONEER_DETECTED then
       ucq_LogRed("Auctioneer not detected, disabling threshold")
-      ucq_AUCTIONEER_DETECTED = true
+      UCQ_AUCTIONEER_DETECTED = true
     end
   end  -- if itemLink
 end -- function
@@ -428,14 +441,10 @@ function ucq_CreateClassStackSize(cls)
   end
   result:SetCallback("OnEnterPressed",
     function(widget, event, text)
-      if text ~= nil then
-        n = tonumber(text)
-	if (n ~= nil) then
-	  stackSizes[cls] = n
-          log("New stack size for " .. cls .. ":" .. stackSizes[cls])
-	end
-      else
-        stackSizes[cls] = nil
+      stackSizes[cls] = nil
+      if text ~= nil and tonumber(text) ~= nil then
+        stackSizes[cls] = tonumber(text)
+        log("New stack size for " .. cls .. ":" .. stackSizes[cls])
       end
     end
   )
@@ -612,6 +621,10 @@ function ucq_LogRed(s)
   log("|cffff0000" .. s)
 end
 
+function ucq_LogYellow(s)
+  log("|cffffff00" .. s)
+end
+
 function ucq_LogGreen(s)
   log("|cff00ff00" .. s)
 end
@@ -636,7 +649,7 @@ function DrawGroup2(frame)
 
 end
 
-ucq_GLYPHS = {
+UCQ_GLYPHS = {
   ["Druid"] = {
     [40896] = true, [40897] = true, [40899] = true, [40900] = true, [40901] = true,
     [40902] = true, [40903] = true, [40906] = true, [40908] = true, [40909] = true,
@@ -733,7 +746,7 @@ ucq_GLYPHS = {
 }
 
 function ucq_GetClass(id)
-  for k, v in pairs(ucq_GLYPHS) do
+  for k, v in pairs(UCQ_GLYPHS) do
     if v[id] ~= nil then
       return k
     end
@@ -751,8 +764,8 @@ function ucq_ShowUi()
 
   local frame = AceGUI:Create("Frame")
   frame:SetWidth(550)
-  frame:SetHeight(600)
-  frame:SetPoint("TOPLEFT", 20, -100)
+  frame:SetHeight(550)
+  frame:SetPoint("TOPLEFT", 20, -50)
   frame:SetTitle("Ultimate Craft Queue")
   frame:SetStatusText("Nothing to report")
   frame:SetCallback("OnClose", function(widget) AceGUI:Release(widget) end)
