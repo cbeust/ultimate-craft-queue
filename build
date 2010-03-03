@@ -1,0 +1,1 @@
+(cd ..; zip UltimateCraftQueue.zip `find UltimateCraftQueue|grep -v git|grep -v build`)
