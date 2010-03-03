@@ -1,6 +1,6 @@
 ## Interface: 20000
 ## Title: Ultimate Craft Queue
-## Notes: How to craft like a champion
+## Notes: Craft glyphs like a pro!
 ## Dependencies:
 ## SavedVariables: UltimateCraftQueueDB
 UltimateCraftQueue.lua

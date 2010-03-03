@@ -1,1 +1,2 @@
 (cd ..; zip UltimateCraftQueue.zip `find UltimateCraftQueue|grep -v git|grep -v build`)
+echo scp UltimateCraftQueue.zip cedric@beust.com:w/ucq
